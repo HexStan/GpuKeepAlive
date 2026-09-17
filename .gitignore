@@ -1,0 +1,45 @@
+# ===== 构建产物 =====
+[Bb]in/
+[Oo]bj/
+bin_dist/
+bin_light/
+[Bb]uild/
+[Dd]ist/
+*.exe
+*.pdb
+*.dll
+
+# ===== Visual Studio / .NET =====
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.log
+TestResults/
+
+# NuGet
+*.nupkg
+packages/
+project.assets.json
+project.nuget.cache
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# ===== Windows 系统文件 =====
+nul
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== 编辑器 =====
+.idea/
+.vscode/
+*.swp
