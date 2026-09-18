@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-  # noqa: UP009
 """
 GPU KeepAlive - 轻量级 GPU 3D 引擎防休眠保活脚本 (纯 Python + Windows OpenGL，零第三方依赖)
 用途:
@@ -11,11 +11,11 @@ GPU KeepAlive - 轻量级 GPU 3D 引擎防休眠保活脚本 (纯 Python + Windo
   2. 运行: python gpu_keepalive.py
 """
 
-import sys
-import time
-import math
 import argparse
 import ctypes
+import math
+import sys
+import time
 from ctypes import wintypes
 
 # 加载 Windows 系统 DLL
