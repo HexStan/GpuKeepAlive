@@ -15,10 +15,11 @@
 
 | 文件名 | 说明 |
 | :--- | :--- |
-| **`GpuKeepAlive.exe`** | **（推荐）** 独立原生程序（单文件 Self-Contained），双击即用，无需配置任何环境 |
-| **`启动核显保活.bat`** | 一键启动脚本（带控制台信息与实时帧率显示） |
+| **`GpuKeepAlive.exe`** | **（推荐）** 独立原生程序（单文件 Self-Contained），双击即用，无需配置任何环境（由 `编译.ps1` 生成或发布包提供） |
+| **`编译.ps1`** | 一键从源码编译并生成单文件 `GpuKeepAlive.exe` 的 PowerShell 脚本 |
+| **`启动核显保活.ps1`** | 一键启动脚本（带控制台信息与实时帧率显示，可右键使用 PowerShell 运行或在终端执行） |
 | **`启动核显保活(后台静默).vbs`** | 双击后完全在后台静默运行，不弹出任何黑框 |
-| **`停止核显保活.bat`** | 一键停止后台运行的保活进程（命令行窗口显示结果） |
+| **`停止核显保活.ps1`** | 一键停止后台运行的保活进程（PowerShell 终端显示结果） |
 | **`停止核显保活(后台静默).vbs`** | 双击静默停止保活进程（无任何弹窗） |
 | **`gpu_keepalive.py`** | 纯 Python 备用脚本（基于系统自带 OpenGL，**零第三方依赖**，无需 pip 安装） |
 | `GpuKeepAlive/` | C# 完整源代码项目（基于 .NET 10 + Direct3D 11 / DXGI） |
@@ -30,7 +31,7 @@
 ### 方式 A：直接运行（最简便，自带硬件绑定）
 
 本程序内置了 DXGI 显卡识别与精确绑定逻辑，**无需繁琐配置**：
-- 直接双击运行 **`启动核显保活.bat`**。
+- 在 PowerShell 中执行 **`.\启动核显保活.ps1`**（或右键选择“使用 PowerShell 运行”）。
 - 程序会自动绑定 Intel 核显（`Intel UHD Graphics 730`），以 **30 FPS、等级 1 轻量负载** 持续运转。
 - 若需要后台无窗口运行，直接双击 **`启动核显保活(后台静默).vbs`** 即可。
 
@@ -99,3 +100,77 @@ GpuKeepAlive.exe [参数]
 - 在 3D 引擎曲线中，可以看到有一条持续稳定在 **0.3% ~ 0.5%** 的微小水平线。
 - GPU 不再降频到断电级待机，从而彻底消除从静止画面变动时的“卡顿 0.x 秒”。
 - CPU 与系统内存占用几乎为零，不影响日常其他任务运行。
+
+---
+
+## 7. 编译指南 (从源码构建)
+
+如果克隆了本代码仓库，由于可执行文件未纳入版本控制，请先参照本章节进行编译构建。
+
+### 7.1 环境准备
+
+- **操作系统**：Windows 10 / Windows 11 (x64)
+- **.NET SDK**：[.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) 或更高版本
+  - 安装完成后可在命令行中通过 `dotnet --version` 验证。
+- **开发工具（可选）**：
+  - Visual Studio 2026 / Visual Studio 2022 (v17.12+)（勾选“.NET 桌面开发”工作负载）
+  - 或 VS Code + C# Dev Kit 扩展
+
+### 7.2 方式一：一键脚本编译（推荐）
+
+在项目根目录下运行 **`.\编译.ps1`**（或右键选择“使用 PowerShell 运行”）：
+- 脚本将自动调用 `dotnet publish` 进行单文件独立发布（Self-Contained），包含内置运行时与单文件体积压缩。
+- 编译完成后会自动将 `GpuKeepAlive.exe` 输出到项目根目录，随后即可直接运行 `启动核显保活.ps1`。
+
+### 7.3 方式二：.NET CLI 命令行手动编译
+
+在项目根目录下打开终端（PowerShell 或 CMD）：
+
+#### 1. 独立单文件发布（Self-Contained，推荐）
+生成无需目标机器安装 .NET 运行时的独立单文件可执行程序：
+```bash
+# 发布至 dist 目录并开启单文件压缩
+dotnet publish GpuKeepAlive/GpuKeepAlive.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o dist
+
+# 复制到根目录供批处理脚本调用
+copy dist\GpuKeepAlive.exe .
+```
+
+#### 2. 框架依赖发布（Framework-Dependent）
+若目标机器已预先安装 .NET 10 运行时，可生成超小体积（约 1.3 MB）的单文件：
+```bash
+dotnet publish GpuKeepAlive/GpuKeepAlive.csproj -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -o dist
+copy dist\GpuKeepAlive.exe .
+```
+
+#### 3. 日常开发与调试构建
+直接编译解决方案或工程以进行调试：
+```bash
+# 编译整个解决方案
+dotnet build GpuKeepAlive.sln
+
+# 直接运行项目（可追加测试参数）
+dotnet run --project GpuKeepAlive/GpuKeepAlive.csproj -- -l
+```
+
+### 7.4 方式三：Visual Studio IDE 构建
+
+1. 双击打开根目录下的 **`GpuKeepAlive.sln`**（或 `GpuKeepAlive.slnx`）。
+2. 在顶部工具栏将配置选择为 **`Release`**，平台选择 **`Any CPU`** 或 **`x64`**。
+3. 点击菜单 **“生成”** -> **“生成解决方案”**。
+4. 如需发布独立单文件可执行程序：
+   - 在“解决方案资源管理器”中右键点击 `GpuKeepAlive` 项目，选择 **“发布...” (Publish)**。
+   - 目标选择 **“文件夹”**，配置部署模式为 **“独立” (Self-contained)**，目标运行时选择 **`win-x64`**。
+   - 在“文件发布选项”中展开勾选 **“生成单个文件”** 和 **“启用压缩”**。
+   - 点击 **“发布”** 按钮，将生成的 `GpuKeepAlive.exe` 拷贝至项目根目录即可。
+
+### 7.5 Python 脚本构建说明（可选）
+
+项目根目录下的 **`gpu_keepalive.py`** 基于系统原生 Win32/OpenGL API 开发，**开箱即用，无需编译与安装任何第三方 pip 库**。
+
+若需要将其单独打包为独立的 Windows `.exe` 可执行程序，可使用 PyInstaller：
+```bash
+pip install pyinstaller
+pyinstaller -F -w gpu_keepalive.py
+```
+打包生成的可执行文件将位于 `dist/gpu_keepalive.exe`。
