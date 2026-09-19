@@ -8,7 +8,7 @@ GPU KeepAlive - 轻量级 GPU 3D 引擎防休眠保活脚本 (纯 Python + Windo
 
 运行方式:
   1. 在 Windows 设置 -> 系统 -> 屏幕 -> 显示卡 (图形) 中，将 python.exe 添加并设置为“节能 (核显)”。
-  2. 运行: python gpu_keepalive.py
+  2. 运行: python scripts/gpu_keepalive.py
 """
 
 import argparse

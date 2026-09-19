@@ -7,8 +7,12 @@ param(
 $exePath = Join-Path $PSScriptRoot "GpuKeepAlive.exe"
 
 if (-not (Test-Path -Path $exePath -PathType Leaf)) {
-    Write-Host "[ERROR] 未找到 $exePath" -ForegroundColor Red
-    Write-Host "请先运行 编译.ps1 编译生成可执行文件。" -ForegroundColor Yellow
+    $exePath = Join-Path (Split-Path $PSScriptRoot -Parent) "GpuKeepAlive.exe"
+}
+
+if (-not (Test-Path -Path $exePath -PathType Leaf)) {
+    Write-Host "[ERROR] 未找到 GpuKeepAlive.exe（已尝试脚本目录与上级目录）" -ForegroundColor Red
+    Write-Host "请先在项目根目录运行 编译.ps1 编译生成可执行文件。" -ForegroundColor Yellow
     Pause
     exit 1
 }

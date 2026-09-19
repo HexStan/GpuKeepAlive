@@ -34,6 +34,6 @@ Write-Host ""
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "[SUCCESS] Build completed!" -ForegroundColor Green
 Write-Host "Output: $targetExe"
-Write-Host "You can now run 启动核显保活.ps1."
+Write-Host "You can now run scripts\启动核显保活.ps1."
 Write-Host "===================================================" -ForegroundColor Cyan
 Pause

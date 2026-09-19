@@ -17,12 +17,13 @@
 | :--- | :--- |
 | **`GpuKeepAlive.exe`** | **（推荐）** 独立原生程序（单文件 Self-Contained），双击即用，无需配置任何环境（由 `编译.ps1` 生成或发布包提供） |
 | **`编译.ps1`** | 一键从源码编译并生成单文件 `GpuKeepAlive.exe` 的 PowerShell 脚本 |
-| **`启动核显保活.ps1`** | 一键启动脚本（带控制台信息与实时帧率显示，可右键使用 PowerShell 运行或在终端执行） |
-| **`启动核显保活(后台静默).vbs`** | 双击后完全在后台静默运行，不弹出任何黑框 |
-| **`停止核显保活.ps1`** | 一键停止后台运行的保活进程（PowerShell 终端显示结果） |
-| **`停止核显保活(后台静默).vbs`** | 双击静默停止保活进程（无任何弹窗） |
-| **`gpu_keepalive.py`** | 纯 Python 备用脚本（基于系统自带 OpenGL，**零第三方依赖**，无需 pip 安装） |
+| **`scripts/启动核显保活.ps1`** | 一键启动脚本（带控制台信息与实时帧率显示，可右键使用 PowerShell 运行或在终端执行） |
+| **`scripts/启动核显保活(后台静默).vbs`** | 双击后完全在后台静默运行，不弹出任何黑框 |
+| **`scripts/停止核显保活.ps1`** | 一键停止后台运行的保活进程（PowerShell 终端显示结果） |
+| **`scripts/停止核显保活(后台静默).vbs`** | 双击静默停止保活进程（无任何弹窗） |
+| **`scripts/gpu_keepalive.py`** | 纯 Python 备用脚本（基于系统自带 OpenGL，**零第三方依赖**，无需 pip 安装） |
 | `GpuKeepAlive/` | C# 完整源代码项目（基于 .NET 10 + Direct3D 11 / DXGI） |
+| `VERSION` | 版本号文件（当前版本 0.1.0） |
 
 ---
 
@@ -31,9 +32,9 @@
 ### 方式 A：直接运行（最简便，自带硬件绑定）
 
 本程序内置了 DXGI 显卡识别与精确绑定逻辑，**无需繁琐配置**：
-- 在 PowerShell 中执行 **`.\启动核显保活.ps1`**（或右键选择“使用 PowerShell 运行”）。
+- 在 PowerShell 中执行 **`.\scripts\启动核显保活.ps1`**（或右键选择“使用 PowerShell 运行”）。
 - 程序会自动绑定 Intel 核显（`Intel UHD Graphics 730`），以 **30 FPS、等级 1 轻量负载** 持续运转。
-- 若需要后台无窗口运行，直接双击 **`启动核显保活(后台静默).vbs`** 即可。
+- 若需要后台无窗口运行，直接双击 **`scripts\启动核显保活(后台静默).vbs`** 即可。
 
 ### 方式 B：通过 Windows 图形首选项指派（系统原生方式）
 
@@ -81,14 +82,14 @@ GpuKeepAlive.exe [参数]
 
 ---
 
-## 5. Python 脚本使用说明 (`gpu_keepalive.py`)
+## 5. Python 脚本使用说明 (`scripts/gpu_keepalive.py`)
 
 如果您更倾向于使用 Python：
 1. 该脚本采用 `ctypes` 直接调用 Windows 原生 `opengl32.dll` 与 `gdi32.dll`，**不需要运行 `pip install`**。
 2. 确保在 Windows 图形设置中把当前 Python 解释器（`python.exe`）指定为“节能（核显）”。
 3. 运行：
    ```bash
-   python gpu_keepalive.py -f 30 -i 1
+   python scripts/gpu_keepalive.py -f 30 -i 1
    ```
 4. 同样支持 `--hide` 参数实现后台静默运行。
 
@@ -120,7 +121,7 @@ GpuKeepAlive.exe [参数]
 
 在项目根目录下运行 **`.\编译.ps1`**（或右键选择“使用 PowerShell 运行”）：
 - 脚本将自动调用 `dotnet publish` 进行单文件独立发布（Self-Contained），包含内置运行时与单文件体积压缩。
-- 编译完成后会自动将 `GpuKeepAlive.exe` 输出到项目根目录，随后即可直接运行 `启动核显保活.ps1`。
+- 编译完成后会自动将 `GpuKeepAlive.exe` 输出到项目根目录，随后即可直接运行 `scripts\启动核显保活.ps1`。
 
 ### 7.3 方式二：.NET CLI 命令行手动编译
 
@@ -166,11 +167,11 @@ dotnet run --project GpuKeepAlive/GpuKeepAlive.csproj -- -l
 
 ### 7.5 Python 脚本构建说明（可选）
 
-项目根目录下的 **`gpu_keepalive.py`** 基于系统原生 Win32/OpenGL API 开发，**开箱即用，无需编译与安装任何第三方 pip 库**。
+`scripts` 目录下的 **`gpu_keepalive.py`** 基于系统原生 Win32/OpenGL API 开发，**开箱即用，无需编译与安装任何第三方 pip 库**。
 
 若需要将其单独打包为独立的 Windows `.exe` 可执行程序，可使用 PyInstaller：
 ```bash
 pip install pyinstaller
-pyinstaller -F -w gpu_keepalive.py
+pyinstaller -F -w scripts/gpu_keepalive.py
 ```
 打包生成的可执行文件将位于 `dist/gpu_keepalive.exe`。
