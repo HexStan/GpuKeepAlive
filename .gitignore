@@ -8,6 +8,7 @@ bin_light/
 *.exe
 *.pdb
 *.dll
+GpuKeepAlive.config.json
 
 # ===== Visual Studio / .NET =====
 .vs/
@@ -42,4 +43,5 @@ $RECYCLE.BIN/
 # ===== 编辑器 =====
 .idea/
 .vscode/
+.zcode/
 *.swp
