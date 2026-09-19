@@ -82,8 +82,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
  GPU KeepAlive - 轻量级 GPU 3D 引擎防休眠保活工具
 ========================================================================
 用途:
-  通过向指定的 GPU (核显/独显) 持续提交微量 3D/Compute 渲染任务，
-  使 GPU 维持活跃状态，防止因性能调度深度降频/休眠而导致的画面卡顿。
+  通过向指定的显卡持续提交微量 3D/Compute 渲染任务，
+  使其维持活跃状态，防止因性能调度深度降频/休眠而导致的画面卡顿。
 
 用法:
   GpuKeepAlive.exe [参数]
@@ -95,9 +95,11 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
   --adapter <索引或名称>, -a <索引或名称>
       指定要保活的目标显卡。
       - 若不指定 (默认 auto): 交由系统 Windows 图形首选项自动调度。
-        (推荐: 您可以在 Windows 设置 -> 屏幕 -> 图形中将本程序指定为'节能'核显)
+        (推荐: 您可以在 Windows 设置 -> 系统 -> 屏幕 -> 图形 中将本程序的
+         首选项设为'节能'或'高性能'，由系统决定调度到哪块显卡)
       - 若指定数字: 绑定指定索引的显卡 (如 -a 1)。
-      - 若指定文本: 模糊匹配显卡名称 (如 -a intel 或 -a 730)。
+      - 若指定文本: 模糊匹配显卡名称 (如 -a 4090，不区分大小写)。
+        支持的主流品牌/系列关键字: intel、arc、nvidia、geforce、rtx、amd、radeon、rx 等。
 
   --fps <数值>, -f <数值>
       渲染保活帧率 (默认: 15 FPS)。
@@ -117,13 +119,16 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
       查看所有显卡列表及编号。
 
   GpuKeepAlive.exe
-      默认模式运行 (受 Windows 图形首选项控制，建议在系统设置中设为核显)。
+      默认模式运行 (调度目标由 Windows 图形首选项决定)。
 
-  GpuKeepAlive.exe -a intel -f 15 -i 1
-      直接指定 Intel 核显，以 15 FPS、轻量模式保活。
+  GpuKeepAlive.exe -a 1 -f 15 -i 1
+      指定索引为 1 的显卡，以 15 FPS、轻量模式保活。
 
-  GpuKeepAlive.exe -a intel -i 2 --hide
-      指定 Intel 核显，中等负载，后台隐藏运行。
+  GpuKeepAlive.exe -a radeon
+      按品牌/系列关键字模糊匹配显卡 (如 intel、arc、nvidia、geforce、amd、radeon)。
+
+  GpuKeepAlive.exe -a 1 -i 2 --hide
+      指定索引为 1 的显卡，中等负载，后台隐藏运行。
 ========================================================================
 ");
     }

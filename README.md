@@ -1,51 +1,40 @@
-# GPU KeepAlive - 核显轻微 3D 负载防休眠保活工具
+# GPU KeepAlive - GPU 保活工具
 
-## 1. 问题背景与机理分析
+## 1. 开发背景
+
+本项目源于作者实际使用中遇到的一个双显卡拓扑问题：
 
 - **拓扑结构**：主板同时存在核显（iGPU，如 Intel UHD 730）与独显（dGPU，如 AMD Radeon RX 6500 XT），显示器物理连接在独显上。
 - **卡顿成因**：
   当某些程序强制使用核显渲染时，核显生成的帧需要通过 PCIe 总线和共享内存跨适配器（Cross-Adapter Scan-Out / Blit）拷贝到独显再输出到显示器。
   当画面静止无变动时（0 FPS），核显与 PCIe 链路进入深度节能状态（如 Intel RC6、PCIe ASPM L1/L1.2、显存降频）。一旦画面发生变动，显卡从深度休眠中唤醒、恢复时钟频率、重新建立跨适配器流水线需要 **100~500ms（0.x秒）的硬件响应延迟**，导致用户感知到的严重顿挫或初次变动瞬间卡顿。
-- **解决方案**：
-  在后台以极低能耗（CPU < 0.1%，GPU 3D 引擎 0.2%~0.5%）持续向核显提交微量 3D 渲染帧，**使核显 3D 核心维持在活跃就绪状态，阻止其掉入深度休眠**。
+- **解决思路**：
+  在后台以极低能耗（CPU < 0.1%，GPU 3D 引擎 0.2%~0.5%）持续向目标显卡提交微量 3D 渲染帧，**使显卡 3D 核心维持在活跃就绪状态，阻止其掉入深度休眠**。
+
+上述机理并非核显独有——任何显卡（核显、独显或虚拟 GPU）在深度节能调度下都可能出现“静止画面变动瞬间的唤醒卡顿”，本工具旨在解决这个问题。
 
 ---
 
-## 2. 交付文件清单
+## 2. 使用方法
 
-| 文件名 | 说明 |
-| :--- | :--- |
-| **`GpuKeepAlive.exe`** | **（推荐）** 独立原生程序（单文件 Self-Contained），双击即用，无需配置任何环境（由 `编译.ps1` 生成或发布包提供） |
-| **`编译.ps1`** | 一键从源码编译并生成单文件 `GpuKeepAlive.exe` 的 PowerShell 脚本 |
-| **`scripts/启动核显保活.ps1`** | 一键启动脚本（带控制台信息与实时帧率显示，可右键使用 PowerShell 运行或在终端执行） |
-| **`scripts/启动核显保活(后台静默).vbs`** | 双击后完全在后台静默运行，不弹出任何黑框 |
-| **`scripts/停止核显保活.ps1`** | 一键停止后台运行的保活进程（PowerShell 终端显示结果） |
-| **`scripts/gpu_keepalive.py`** | 纯 Python 备用脚本（基于系统自带 OpenGL，**零第三方依赖**，无需 pip 安装） |
-| `GpuKeepAlive/` | C# 完整源代码项目（基于 .NET 10 + Direct3D 11 / DXGI） |
-| `VERSION` | 版本号文件（当前版本 0.1.0） |
+### 方式 A：直接运行（最简便）
 
----
-
-## 3. 使用方法
-
-### 方式 A：直接运行（最简便，自带硬件绑定）
-
-本程序内置了 DXGI 显卡识别与精确绑定逻辑，**无需繁琐配置**：
-- 在 PowerShell 中执行 **`.\scripts\启动核显保活.ps1`**（或右键选择“使用 PowerShell 运行”）。
-- 程序会自动绑定 Intel 核显（`Intel UHD Graphics 730`），以 **15 FPS、等级 1 轻量负载** 持续运转。
-- 若需要后台无窗口运行，直接双击 **`scripts\启动核显保活(后台静默).vbs`** 即可。
+在项目根目录直接运行 **`GpuKeepAlive.exe`**：
+- 不带参数启动：调度目标严格遵循 Windows 图形首选项（配置方法见方式 B）。
+- 需要手动指定显卡：先执行 `GpuKeepAlive.exe -l` 查看显卡列表及索引，再以 `-a` 参数指定（支持索引或品牌/系列关键字，详见第 3 节），例如 `GpuKeepAlive.exe -a intel -f 15 -i 1` 表示对 Intel 显卡以 15 FPS 轻量负载持续保活。
+- 需要后台无窗口运行：追加 `--hide` 参数。
 
 ### 方式 B：通过 Windows 图形首选项指派（系统原生方式）
 
 若您希望交由 Windows 自行调度：
 1. 打开 Windows **“设置”** -> **“系统”** -> **“屏幕”** -> **“显示卡”**（或“图形首选项”）。
-2. 在“添加应用”中点击“浏览”，选择本目录下的 `GpuKeepAlive.exe`（或 `python.exe`）。
-3. 添加后点击该应用，点击 **“选项”**，勾选 **“节能 (核显 / Microsoft 基本显示适配器)”** 并保存。
+2. 在“添加应用”中点击“浏览”，选择 `GpuKeepAlive.exe`。
+3. 添加后点击该应用，点击 **“选项”**，勾选 **“节能”** 或 **“高性能”**（取决于您希望保活哪块显卡）并保存。
 4. 直接无参数启动 `GpuKeepAlive.exe`，程序检测到未指定参数时，将严格遵循 Windows 设置的图形首选项。
 
 ---
 
-## 4. 命令行参数详解 (`GpuKeepAlive.exe`)
+## 3. 命令行参数详解 (`GpuKeepAlive.exe`)
 
 ```text
 GpuKeepAlive.exe [参数]
@@ -59,6 +48,7 @@ GpuKeepAlive.exe [参数]
       - 留空 (默认): 自动遵循 Windows 屏幕图形首选项。
       - 数字 (如 -a 1): 强制绑定编号为 1 的显卡。
       - 文本 (如 -a intel): 模糊匹配名称包含 intel 的显卡。
+        支持的主流品牌/系列关键字: intel、arc、nvidia、geforce、rtx、amd、radeon、rx 等。
 
   --fps <数值>, -f <数值>
       渲染保活频率，默认 15 FPS。推荐 15 ~ 60。
@@ -76,38 +66,26 @@ GpuKeepAlive.exe [参数]
 
 ### 常用示例
 - 查看所有显卡：`GpuKeepAlive.exe -l`
-- 指定核显、15 FPS、等级 1：`GpuKeepAlive.exe -a intel -f 15 -i 1`
-- 后台静默运行：`GpuKeepAlive.exe -a intel -i 1 --hide`
+- 指定 1 号显卡、15 FPS、等级 1：`GpuKeepAlive.exe -a 1 -f 15 -i 1`
+- 按品牌关键字模糊匹配（不区分大小写）：`GpuKeepAlive.exe -a intel` 或 `GpuKeepAlive.exe -a nvidia`
+- 后台静默运行：`GpuKeepAlive.exe -a 1 -i 1 --hide`
 
 ---
 
-## 5. Python 脚本使用说明 (`scripts/gpu_keepalive.py`)
+## 4. 验证与监控
 
-如果您更倾向于使用 Python：
-1. 该脚本采用 `ctypes` 直接调用 Windows 原生 `opengl32.dll` 与 `gdi32.dll`，**不需要运行 `pip install`**。
-2. 确保在 Windows 图形设置中把当前 Python 解释器（`python.exe`）指定为“节能（核显）”。
-3. 运行：
-   ```bash
-   python scripts/gpu_keepalive.py -f 15 -i 1
-   ```
-4. 同样支持 `--hide` 参数实现后台静默运行。
-
----
-
-## 6. 验证与监控
-
-启动后，可以打开 Windows **任务管理器** -> 点击 **“性能”** 选项卡 -> 选择 **GPU（Intel UHD Graphics 730）**：
+启动后，可以打开 Windows **任务管理器** -> 点击 **“性能”** 选项卡 -> 选择目标 GPU（即程序当前绑定的那块显卡）：
 - 在 3D 引擎曲线中，可以看到有一条持续稳定在 **0.3% ~ 0.5%** 的微小水平线。
 - GPU 不再降频到断电级待机，从而彻底消除从静止画面变动时的“卡顿 0.x 秒”。
 - CPU 与系统内存占用几乎为零，不影响日常其他任务运行。
 
 ---
 
-## 7. 编译指南 (从源码构建)
+## 5. 编译指南 (从源码构建)
 
 如果克隆了本代码仓库，由于可执行文件未纳入版本控制，请先参照本章节进行编译构建。
 
-### 7.1 环境准备
+### 5.1 环境准备
 
 - **操作系统**：Windows 10 / Windows 11 (x64)
 - **.NET SDK**：[.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) 或更高版本
@@ -116,13 +94,13 @@ GpuKeepAlive.exe [参数]
   - Visual Studio 2026 / Visual Studio 2022 (v17.12+)（勾选“.NET 桌面开发”工作负载）
   - 或 VS Code + C# Dev Kit 扩展
 
-### 7.2 方式一：一键脚本编译（推荐）
+### 5.2 方式一：一键脚本编译（推荐）
 
 在项目根目录下运行 **`.\编译.ps1`**（或右键选择“使用 PowerShell 运行”）：
 - 脚本将自动调用 `dotnet publish` 进行单文件独立发布（Self-Contained），包含内置运行时与单文件体积压缩。
-- 编译完成后会自动将 `GpuKeepAlive.exe` 输出到项目根目录，随后即可直接运行 `scripts\启动核显保活.ps1`。
+- 编译完成后会自动将 `GpuKeepAlive.exe` 输出到项目根目录，随后即可直接运行。
 
-### 7.3 方式二：.NET CLI 命令行手动编译
+### 5.3 方式二：.NET CLI 命令行手动编译
 
 在项目根目录下打开终端（PowerShell 或 CMD）：
 
@@ -132,7 +110,7 @@ GpuKeepAlive.exe [参数]
 # 发布至 dist 目录并开启单文件压缩
 dotnet publish GpuKeepAlive/GpuKeepAlive.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o dist
 
-# 复制到根目录供批处理脚本调用
+# 复制到项目根目录，便于直接运行
 copy dist\GpuKeepAlive.exe .
 ```
 
@@ -153,7 +131,7 @@ dotnet build GpuKeepAlive.sln
 dotnet run --project GpuKeepAlive/GpuKeepAlive.csproj -- -l
 ```
 
-### 7.4 方式三：Visual Studio IDE 构建
+### 5.4 方式三：Visual Studio IDE 构建
 
 1. 双击打开根目录下的 **`GpuKeepAlive.sln`**（或 `GpuKeepAlive.slnx`）。
 2. 在顶部工具栏将配置选择为 **`Release`**，平台选择 **`Any CPU`** 或 **`x64`**。
@@ -163,14 +141,3 @@ dotnet run --project GpuKeepAlive/GpuKeepAlive.csproj -- -l
    - 目标选择 **“文件夹”**，配置部署模式为 **“独立” (Self-contained)**，目标运行时选择 **`win-x64`**。
    - 在“文件发布选项”中展开勾选 **“生成单个文件”** 和 **“启用压缩”**。
    - 点击 **“发布”** 按钮，将生成的 `GpuKeepAlive.exe` 拷贝至项目根目录即可。
-
-### 7.5 Python 脚本构建说明（可选）
-
-`scripts` 目录下的 **`gpu_keepalive.py`** 基于系统原生 Win32/OpenGL API 开发，**开箱即用，无需编译与安装任何第三方 pip 库**。
-
-若需要将其单独打包为独立的 Windows `.exe` 可执行程序，可使用 PyInstaller：
-```bash
-pip install pyinstaller
-pyinstaller -F -w scripts/gpu_keepalive.py
-```
-打包生成的可执行文件将位于 `dist/gpu_keepalive.exe`。
