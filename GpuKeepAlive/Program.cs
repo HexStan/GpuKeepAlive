@@ -100,8 +100,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
       - 若指定文本: 模糊匹配显卡名称 (如 -a intel 或 -a 730)。
 
   --fps <数值>, -f <数值>
-      渲染保活帧率 (默认: 30 FPS)。
-      推荐范围: 15 ~ 60。帧率越低 CPU 开销越小，30 FPS 兼顾灵敏度与极低功耗。
+      渲染保活帧率 (默认: 15 FPS)。
+      推荐范围: 15 ~ 60。帧率越低 CPU 开销越小，15 FPS 兼顾灵敏度与极低功耗。
 
   --intensity <1|2|3>, -i <1|2|3>
       负载强度等级 (默认: 1):
@@ -119,8 +119,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
   GpuKeepAlive.exe
       默认模式运行 (受 Windows 图形首选项控制，建议在系统设置中设为核显)。
 
-  GpuKeepAlive.exe -a intel -f 30 -i 1
-      直接指定 Intel 核显，以 30 FPS、轻量模式保活。
+  GpuKeepAlive.exe -a intel -f 15 -i 1
+      直接指定 Intel 核显，以 15 FPS、轻量模式保活。
 
   GpuKeepAlive.exe -a intel -i 2 --hide
       指定 Intel 核显，中等负载，后台隐藏运行。
@@ -131,7 +131,7 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     static void Main(string[] args)
     {
         string? adapterArg = null;
-        int targetFps = 30;
+        int targetFps = 15;
         int intensity = 1;
         bool hideWindow = false;
         bool listOnly = false;

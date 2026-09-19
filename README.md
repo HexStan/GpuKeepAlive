@@ -32,7 +32,7 @@
 
 本程序内置了 DXGI 显卡识别与精确绑定逻辑，**无需繁琐配置**：
 - 在 PowerShell 中执行 **`.\scripts\启动核显保活.ps1`**（或右键选择“使用 PowerShell 运行”）。
-- 程序会自动绑定 Intel 核显（`Intel UHD Graphics 730`），以 **30 FPS、等级 1 轻量负载** 持续运转。
+- 程序会自动绑定 Intel 核显（`Intel UHD Graphics 730`），以 **15 FPS、等级 1 轻量负载** 持续运转。
 - 若需要后台无窗口运行，直接双击 **`scripts\启动核显保活(后台静默).vbs`** 即可。
 
 ### 方式 B：通过 Windows 图形首选项指派（系统原生方式）
@@ -61,8 +61,8 @@ GpuKeepAlive.exe [参数]
       - 文本 (如 -a intel): 模糊匹配名称包含 intel 的显卡。
 
   --fps <数值>, -f <数值>
-      渲染保活频率，默认 30 FPS。推荐 15 ~ 60。
-      30 FPS 下 CPU 占用率极低 (< 0.1%)，且足以维持 GPU 唤醒时钟。
+      渲染保活频率，默认 15 FPS。推荐 15 ~ 60。
+      15 FPS 下 CPU 占用率极低 (< 0.1%)，且足以维持 GPU 唤醒时钟。
 
   --intensity <1|2|3>, -i <1|2|3>
       负载强度等级 (默认: 1):
@@ -76,7 +76,7 @@ GpuKeepAlive.exe [参数]
 
 ### 常用示例
 - 查看所有显卡：`GpuKeepAlive.exe -l`
-- 指定核显、30 FPS、等级 1：`GpuKeepAlive.exe -a intel -f 30 -i 1`
+- 指定核显、15 FPS、等级 1：`GpuKeepAlive.exe -a intel -f 15 -i 1`
 - 后台静默运行：`GpuKeepAlive.exe -a intel -i 1 --hide`
 
 ---
@@ -88,7 +88,7 @@ GpuKeepAlive.exe [参数]
 2. 确保在 Windows 图形设置中把当前 Python 解释器（`python.exe`）指定为“节能（核显）”。
 3. 运行：
    ```bash
-   python scripts/gpu_keepalive.py -f 30 -i 1
+   python scripts/gpu_keepalive.py -f 15 -i 1
    ```
 4. 同样支持 `--hide` 参数实现后台静默运行。
 

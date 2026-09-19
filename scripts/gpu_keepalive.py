@@ -86,7 +86,7 @@ def main():
   添加 python.exe (或虚拟环境中的 python.exe)，并将其首选项设为“节能 (核显)”。
 """
     )
-    parser.add_argument("-f", "--fps", type=int, default=30, help="渲染保活帧率 (默认: 30 FPS)")
+    parser.add_argument("-f", "--fps", type=int, default=15, help="渲染保活帧率 (默认: 15 FPS)")
     parser.add_argument("-i", "--intensity", type=int, choices=[1, 2], default=1,
                         help="负载等级: 1=轻微(glClear，约0.2%%~0.5%%)，2=中等(画旋转几何体，约1%%~2%%)")
     parser.add_argument("--hide", action="store_true", help="启动后自动隐藏控制台窗口")
