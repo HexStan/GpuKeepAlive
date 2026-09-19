@@ -20,7 +20,6 @@
 | **`scripts/启动核显保活.ps1`** | 一键启动脚本（带控制台信息与实时帧率显示，可右键使用 PowerShell 运行或在终端执行） |
 | **`scripts/启动核显保活(后台静默).vbs`** | 双击后完全在后台静默运行，不弹出任何黑框 |
 | **`scripts/停止核显保活.ps1`** | 一键停止后台运行的保活进程（PowerShell 终端显示结果） |
-| **`scripts/停止核显保活(后台静默).vbs`** | 双击静默停止保活进程（无任何弹窗） |
 | **`scripts/gpu_keepalive.py`** | 纯 Python 备用脚本（基于系统自带 OpenGL，**零第三方依赖**，无需 pip 安装） |
 | `GpuKeepAlive/` | C# 完整源代码项目（基于 .NET 10 + Direct3D 11 / DXGI） |
 | `VERSION` | 版本号文件（当前版本 0.1.0） |
