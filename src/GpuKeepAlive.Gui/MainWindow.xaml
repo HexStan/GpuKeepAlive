@@ -1,0 +1,106 @@
+<Window x:Class="GpuKeepAlive.Gui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:GpuKeepAlive.Gui.Converters"
+        Title="GPU KeepAlive 设置"
+        Width="560" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/app.ico"
+        Background="#F5F6F8">
+    <Window.Resources>
+        <conv:EnumMatchConverter x:Key="EnumMatch" />
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,14,0,6" />
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#777777" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18,12,18,16">
+        <StackPanel>
+            <TextBlock Text="显卡选择" Style="{StaticResource SectionTitle}" />
+            <RadioButton Content="默认 — 交由 Windows 图形首选项自动调度"
+                         IsChecked="{Binding Mode, Converter={StaticResource EnumMatch}, ConverterParameter=Default}"
+                         Margin="0,0,0,4" />
+            <RadioButton Content="全部 — 为检测到的所有显卡同时保活"
+                         IsChecked="{Binding Mode, Converter={StaticResource EnumMatch}, ConverterParameter=All}"
+                         Margin="0,0,0,4" />
+            <RadioButton Content="自定义 — 手动选择要保活的显卡"
+                         IsChecked="{Binding Mode, Converter={StaticResource EnumMatch}, ConverterParameter=Custom}"
+                         Margin="0,0,0,6" />
+
+            <Border BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="4" Background="White"
+                    Padding="10,6" Margin="22,0,0,0">
+                <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Adapters}" IsEnabled="{Binding AdaptersEnabled}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Margin="0,3"
+                                          AutomationProperties.Name="{Binding Label}"
+                                          IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LuidText}" Foreground="#888888" FontSize="11"
+                                                   VerticalAlignment="Center" Margin="10,1,0,0" />
+                                        <TextBlock Text="{Binding MemoryText}" Foreground="#AAAAAA" FontSize="11"
+                                                   VerticalAlignment="Center" Margin="10,1,0,0" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+            <TextBlock Text="{Binding GpuHint}" Style="{StaticResource Hint}" />
+
+            <TextBlock Text="运行参数" Style="{StaticResource SectionTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                <TextBlock Text="保活帧率" VerticalAlignment="Center" />
+                <TextBox Text="{Binding FpsText}" Width="56" Margin="8,0,8,0" Padding="4,3"
+                         VerticalContentAlignment="Center" />
+                <TextBlock Text="FPS（1–240，默认 15）" VerticalAlignment="Center" Foreground="#777777" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="负载强度" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <RadioButton Content="1 · 轻微" VerticalAlignment="Center" Margin="0,0,12,0"
+                             IsChecked="{Binding Intensity, Converter={StaticResource EnumMatch}, ConverterParameter=1}" />
+                <RadioButton Content="2 · 中等" VerticalAlignment="Center" Margin="0,0,12,0"
+                             IsChecked="{Binding Intensity, Converter={StaticResource EnumMatch}, ConverterParameter=2}" />
+                <RadioButton Content="3 · 进阶" VerticalAlignment="Center"
+                             IsChecked="{Binding Intensity, Converter={StaticResource EnumMatch}, ConverterParameter=3}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Hint}">
+                <Run Text="轻微: Clear 渲染目标（GPU 约 0.2%~0.5%）" /><LineBreak />
+                <Run Text="中等: 全屏着色器光栅化（约 1%~2%）" /><LineBreak />
+                <Run Text="进阶: Compute 并行计算（约 3%~5%）" />
+            </TextBlock>
+
+            <TextBlock Text="服务" Style="{StaticResource SectionTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <Button Content="启动服务" Command="{Binding StartCommand}" Padding="18,6" Margin="0,0,10,0" />
+                <Button Content="停止服务" Command="{Binding StopCommand}" Padding="18,6" Margin="0,0,14,0" />
+                <TextBlock Text="{Binding ServiceStateText}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            </StackPanel>
+            <TextBlock Text="{Binding ConfigHint}" Style="{StaticResource Hint}" Foreground="#C0392B" />
+            <ItemsControl ItemsSource="{Binding Workers}" Margin="0,8,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Text="{Binding Name}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DetailText}" Foreground="#888888" FontSize="11"
+                                       Margin="10,1,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Grid>
+</Window>

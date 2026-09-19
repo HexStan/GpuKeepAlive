@@ -2,6 +2,7 @@
 
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "  GpuKeepAlive - Build & Publish Script" -ForegroundColor Cyan
+Write-Host "  (GUI: GpuKeepAlive.exe + CLI: GpuKeepAliveCli.exe)" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -13,27 +14,36 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$projectPath = Join-Path $PSScriptRoot "GpuKeepAlive\GpuKeepAlive.csproj"
 $distDir = Join-Path $PSScriptRoot "dist"
-$targetExe = Join-Path $PSScriptRoot "GpuKeepAlive.exe"
 
-Write-Host "Building single-file executable (Release win-x64)..." -ForegroundColor Green
-& dotnet publish $projectPath -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o $distDir
+# GUI (WPF) 在 .NET 10 的压缩单文件发布下存在 WPF 内部 P/Invoke 解析缺陷
+# (SetWindowLongPtr 抛 DllNotFoundException)，须配合 IncludeNativeLibrariesForSelfExtract 使用。
+$targets = @(
+    @{ Project = "src\GpuKeepAlive.Gui\GpuKeepAlive.Gui.csproj"; Exe = "GpuKeepAlive.exe"; ExtraArgs = @("-p:IncludeNativeLibrariesForSelfExtract=true") },
+    @{ Project = "src\GpuKeepAlive.Cli\GpuKeepAlive.Cli.csproj"; Exe = "GpuKeepAliveCli.exe"; ExtraArgs = @() }
+)
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host ""
-    Write-Host "[ERROR] Build failed. Please check the error messages above." -ForegroundColor Red
-    Pause
-    exit $LASTEXITCODE
+foreach ($t in $targets) {
+    $projectPath = Join-Path $PSScriptRoot $t.Project
+    Write-Host "Publishing $($t.Project) (Release win-x64, single-file)..." -ForegroundColor Green
+
+    & dotnet publish $projectPath -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true @($t.ExtraArgs) -o $distDir
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ""
+        Write-Host "[ERROR] Build failed for $($t.Project). Please check the error messages above." -ForegroundColor Red
+        Pause
+        exit $LASTEXITCODE
+    }
+
+    Copy-Item -Path (Join-Path $distDir $t.Exe) -Destination (Join-Path $PSScriptRoot $t.Exe) -Force
 }
-
-$sourceExe = Join-Path $distDir "GpuKeepAlive.exe"
-Copy-Item -Path $sourceExe -Destination $targetExe -Force
 
 Write-Host ""
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "[SUCCESS] Build completed!" -ForegroundColor Green
-Write-Host "Output: $targetExe"
-Write-Host "You can now run GpuKeepAlive.exe."
+Write-Host "Output:"
+Write-Host "  $(Join-Path $PSScriptRoot 'GpuKeepAlive.exe')     (GUI - 托盘版)"
+Write-Host "  $(Join-Path $PSScriptRoot 'GpuKeepAliveCli.exe')  (CLI - 命令行版)"
 Write-Host "===================================================" -ForegroundColor Cyan
 Pause

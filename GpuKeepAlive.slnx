@@ -1,3 +1,7 @@
 <Solution>
-  <Project Path="GpuKeepAlive/GpuKeepAlive.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/GpuKeepAlive.Cli/GpuKeepAlive.Cli.csproj" />
+    <Project Path="src/GpuKeepAlive.Core/GpuKeepAlive.Core.csproj" />
+    <Project Path="src/GpuKeepAlive.Gui/GpuKeepAlive.Gui.csproj" />
+  </Folder>
 </Solution>
