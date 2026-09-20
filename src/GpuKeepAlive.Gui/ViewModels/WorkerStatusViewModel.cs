@@ -52,7 +52,7 @@ public sealed class WorkerStatusViewModel : INotifyPropertyChanged
             case KeepAliveWorkerStatus.Running:
                 StatusText = "运行中";
                 StatusBrush = Brushes.SeaGreen;
-                DetailText = $"{stats.Elapsed:hh\\:mm\\:ss} · {stats.FramesSubmitted} 帧 · {stats.ActualFps:F1} FPS";
+                DetailText = $"{stats.ActualFps:F1} FPS · {stats.ElapsedText} · {stats.FramesText}";
                 break;
             case KeepAliveWorkerStatus.Starting:
                 StatusText = "启动中…";

@@ -232,7 +232,7 @@ public static class Program
 
         string state = s.Status switch
         {
-            KeepAliveWorkerStatus.Running => $"运行 {s.Elapsed:hh\\:mm\\:ss} · 已提交 {s.FramesSubmitted} 帧 · {s.ActualFps:F1} FPS",
+            KeepAliveWorkerStatus.Running => $"{s.ActualFps:F1} FPS · 已运行 {s.ElapsedText} · 已提交 {s.FramesText}",
             KeepAliveWorkerStatus.Starting => "启动中…",
             KeepAliveWorkerStatus.Failed => $"失败: {s.ErrorMessage}",
             _ => "已停止",
