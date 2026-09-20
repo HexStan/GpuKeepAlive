@@ -44,8 +44,6 @@ public sealed class WorkerStatusViewModel : INotifyPropertyChanged
         Name = stats.DisplayName;
         if (stats.DisplayName == KeepAliveManager.SystemDefaultLabel && stats.ActualAdapterName is not null)
             Name = $"系统默认调度 → {stats.ActualAdapterName}";
-        if (stats.ActualAdapterLuid is not null)
-            Name = $"{Name} · {stats.ActualAdapterLuid}";
 
         switch (stats.Status)
         {

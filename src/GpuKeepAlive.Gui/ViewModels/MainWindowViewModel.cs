@@ -18,7 +18,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly KeepAliveService _service;
     private readonly JsonSettingsStore _store;
-    private readonly HashSet<string> _initialCustomLuids;
+    private readonly HashSet<GpuAdapterId> _initialCustomAdapters;
     private readonly DispatcherTimer _timer;
 
     private bool _hydrating;
@@ -43,7 +43,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     {
         _service = service;
         _store = store;
-        _initialCustomLuids = [.. initialSettings.CustomLuids];
+        _initialCustomAdapters = [.. initialSettings.CustomAdapters];
 
         _hydrating = true;
         _mode = initialSettings.Mode;
@@ -152,7 +152,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         GpuSelectionMode.All => Adapters.Count == 0
             ? "未检测到可用显卡。"
             : $"将为检测到的 {Adapters.Count} 块显卡同时保活。",
-        _ => "勾选要保活的显卡（可多选）。同型号多卡可通过 LUID 唯一标识区分。",
+        _ => "勾选要保活的显卡（可多选）。同型号多卡可通过序号区分。",
     };
 
     /// <summary>配置校验提示；空字符串表示配置有效。</summary>
@@ -168,13 +168,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>重新枚举显卡并重建列表；勾选状态按 LUID 保留（不受枚举顺序重排影响），
+    /// <summary>重新枚举显卡并重建列表；勾选状态按标识（序号 + 名称）保留，
     /// 初始化时应用配置文件中的自定义勾选。</summary>
     public void RefreshAdapters()
     {
-        IEnumerable<string> keep = _hydrating
-            ? _initialCustomLuids
-            : Adapters.Where(a => a.IsSelected).Select(a => a.Info.AdapterLuid);
+        IEnumerable<GpuAdapterId> keep = _hydrating
+            ? _initialCustomAdapters
+            : Adapters.Where(a => a.IsSelected).Select(a => a.Info.Id);
 
         var keepSet = keep.ToHashSet();
 
@@ -186,7 +186,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
             foreach (var info in GpuAdapterEnumerator.ListAdapters())
                 Adapters.Add(new GpuAdapterViewModel(info, OnAdapterSelectionChanged)
                 {
-                    IsSelected = keepSet.Contains(info.AdapterLuid),
+                    IsSelected = keepSet.Contains(info.Id),
                 });
         }
         finally
@@ -285,7 +285,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
            && a.Fps == b.Fps
            && a.Intensity == b.Intensity
            && a.ServiceRunning == b.ServiceRunning
-           && a.CustomLuids.SequenceEqual(b.CustomLuids);
+           && a.CustomAdapters.SequenceEqual(b.CustomAdapters);
 
     /// <summary>由当前 UI 状态构造配置；配置无效（自定义未选显卡 / 帧率越界 / 全部模式无显卡）时返回 null。</summary>
     private GuiSettings? BuildSettings()
@@ -293,7 +293,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         if (!int.TryParse(_fpsText.Trim(), out int fps) || fps < 1 || fps > 240)
             return null;
 
-        var selected = Adapters.Where(a => a.IsSelected).Select(a => a.Info.AdapterLuid).ToList();
+        var selected = Adapters.Where(a => a.IsSelected).Select(a => a.Info.Id).ToList();
         if (_mode == GpuSelectionMode.Custom && selected.Count == 0)
             return null;
         if (_mode == GpuSelectionMode.All && Adapters.Count == 0)
@@ -302,7 +302,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         return new GuiSettings
         {
             Mode = _mode,
-            CustomLuids = selected,
+            CustomAdapters = selected,
             Fps = fps,
             Intensity = _intensity,
         };

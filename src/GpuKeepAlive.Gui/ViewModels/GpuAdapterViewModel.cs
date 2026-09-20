@@ -21,9 +21,6 @@ public sealed class GpuAdapterViewModel : INotifyPropertyChanged
 
     public string Label => $"[{Info.Index}] {Info.Name}";
 
-    /// <summary>LUID 是显卡唯一标识（同型号多卡互不相同），用于精确区分与对照验证。</summary>
-    public string LuidText => $"LUID {Info.AdapterLuid}";
-
     public string MemoryText => Info.DedicatedMemoryMB > 0
         ? $"专用 {Info.DedicatedMemoryMB} MB · 共享 {Info.SharedMemoryMB} MB"
         : $"共享 {Info.SharedMemoryMB} MB";

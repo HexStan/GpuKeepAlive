@@ -6,5 +6,8 @@ public sealed record GpuAdapterInfo(
     string Name,
     uint VendorId,
     long DedicatedMemoryMB,
-    long SharedMemoryMB,
-    string AdapterLuid);
+    long SharedMemoryMB)
+{
+    /// <summary>该适配器的持久化标识（序号 + 名称）。</summary>
+    public GpuAdapterId Id => new(Index, Name);
+}

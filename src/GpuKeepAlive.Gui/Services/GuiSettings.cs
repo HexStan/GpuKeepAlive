@@ -1,3 +1,5 @@
+using GpuKeepAlive.Core;
+
 namespace GpuKeepAlive.Gui.Services;
 
 public enum GpuSelectionMode
@@ -13,11 +15,9 @@ public sealed class GuiSettings
     public GpuSelectionMode Mode { get; set; } = GpuSelectionMode.Default;
 
     /// <summary>
-    /// 自定义模式选中的显卡 LUID 列表。
-    /// 以 LUID 而非索引持久化：DXGI 枚举顺序在虚拟显示适配器增删后会重排，
-    /// 索引无法跨运行稳定标识同一块物理显卡。
+    /// 自定义模式选中的显卡标识列表（序号 + 名称，两者一致才视为同一设备）。
     /// </summary>
-    public List<string> CustomLuids { get; set; } = [];
+    public List<GpuAdapterId> CustomAdapters { get; set; } = [];
 
     public int Fps { get; set; } = 15;
 

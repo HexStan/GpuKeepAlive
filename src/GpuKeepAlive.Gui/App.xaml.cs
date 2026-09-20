@@ -79,19 +79,19 @@ public partial class App : Application
 
         if (settings.Mode == GpuSelectionMode.Custom)
         {
-            var available = adapters.Select(a => a.AdapterLuid).ToHashSet();
-            var validLuids = settings.CustomLuids.Where(available.Contains).Distinct().ToList();
-            if (validLuids.Count == 0)
+            var available = adapters.Select(a => a.Id).ToHashSet();
+            var validAdapters = settings.CustomAdapters.Where(available.Contains).Distinct().ToList();
+            if (validAdapters.Count == 0)
             {
-                settings.CustomLuids = validLuids;
+                settings.CustomAdapters = validAdapters;
                 settings.ServiceRunning = false;
                 _store?.TrySave(settings);
                 NotifyTray("GPU KeepAlive", "配置中指定的显卡已不存在，服务未自动启动。");
                 return;
             }
-            if (validLuids.Count != settings.CustomLuids.Count)
+            if (validAdapters.Count != settings.CustomAdapters.Count)
             {
-                settings.CustomLuids = validLuids;
+                settings.CustomAdapters = validAdapters;
                 _store?.TrySave(settings);
             }
         }
@@ -134,7 +134,7 @@ public partial class App : Application
         if (_mainWindow?.WindowState == WindowState.Minimized)
             _mainWindow.WindowState = WindowState.Normal;
         _mainWindow?.Activate();
-        // 每次显示都刷新显卡列表（虚拟显示适配器可能增删导致枚举变化）；勾选按 LUID 保留。
+        // 每次显示都刷新显卡列表（虚拟显示适配器可能增删导致枚举变化）；勾选按标识（序号 + 名称）保留。
         _mainWindow?.ViewModel.RefreshAdapters();
     }
 

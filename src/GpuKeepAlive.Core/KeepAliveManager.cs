@@ -32,16 +32,10 @@ public sealed class KeepAliveManager : IDisposable
             int fps = Math.Clamp(options.Fps, 1, 240);
             int intensity = Math.Clamp(options.Intensity, 1, 3);
 
-            if (options.AdapterLuids is { } luids)
+            if (options.Adapters is { } targets)
             {
-                var infos = GpuAdapterEnumerator.ListAdapters().ToDictionary(a => a.AdapterLuid);
-                foreach (string luid in luids.Distinct())
-                {
-                    string displayName = infos.TryGetValue(luid, out var info)
-                        ? $"[{info.Index}] {info.Name}"
-                        : $"未知显卡 (LUID {luid})";
-                    _workers.Add(new KeepAliveWorker(luid, fps, intensity, displayName));
-                }
+                foreach (var target in targets.Distinct())
+                    _workers.Add(new KeepAliveWorker(target, fps, intensity, $"[{target.Index}] {target.Name}"));
             }
             else
             {

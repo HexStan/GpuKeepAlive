@@ -80,8 +80,8 @@ public static class Program
         }
 
         // 解析目标显卡：每项可为索引或名称关键字，允许逗号分隔与重复传参。
-        // 内部以 LUID 标识目标（枚举顺序在虚拟显示适配器增删后会重排，索引不可靠）。
-        List<string>? targetLuids = null;
+        // 内部以 序号+名称 标识目标。
+        List<GpuAdapterId>? targetAdapters = null;
         if (adapterTokens.Count > 0)
         {
             var resolved = new List<GpuAdapterInfo>();
@@ -103,7 +103,7 @@ public static class Program
                     failedTokens.Add(token);
                 }
             }
-            resolved = resolved.DistinctBy(a => a.AdapterLuid).ToList();
+            resolved = resolved.DistinctBy(a => a.Id).ToList();
 
             foreach (string token in failedTokens)
                 Console.WriteLine($"警告: 未找到匹配 \"{token}\" 的显卡，已跳过。");
@@ -116,7 +116,7 @@ public static class Program
                 return 1;
             }
 
-            targetLuids = [.. resolved.Select(a => a.AdapterLuid)];
+            targetAdapters = [.. resolved.Select(a => a.Id)];
         }
 
         // 单实例锁（仅约束保活模式；--list / --help 不受限制）。
@@ -135,9 +135,9 @@ public static class Program
             return 1;
         }
 
-        string targetDescription = targetLuids is null
+        string targetDescription = targetAdapters is null
             ? KeepAliveManager.SystemDefaultLabel
-            : string.Join(", ", adapters.Where(a => targetLuids.Contains(a.AdapterLuid)).Select(a => $"[{a.Index}] {a.Name}"));
+            : string.Join(", ", targetAdapters.Select(id => $"[{id.Index}] {id.Name}"));
 
         if (!Console.IsOutputRedirected)
             Console.Title = "GPU KeepAlive CLI";
@@ -161,7 +161,7 @@ public static class Program
         }
 
         using var manager = new KeepAliveManager();
-        manager.Start(new KeepAliveOptions(targetFps, intensity, targetLuids));
+        manager.Start(new KeepAliveOptions(targetFps, intensity, targetAdapters));
 
         bool stopping = false;
         Console.CancelKeyPress += (_, e) =>
@@ -227,8 +227,6 @@ public static class Program
         string name = s.DisplayName;
         if (s.DisplayName == KeepAliveManager.SystemDefaultLabel && s.ActualAdapterName is not null)
             name = $"系统默认调度 → {s.ActualAdapterName}";
-        if (s.ActualAdapterLuid is not null)
-            name = $"{name} ({s.ActualAdapterLuid})";
 
         string state = s.Status switch
         {
@@ -251,11 +249,10 @@ public static class Program
         {
             var a = adapters[i];
             Console.WriteLine($"  [{i}] {a.Name}");
-            Console.WriteLine($"      LUID: {a.AdapterLuid} | 厂商ID: 0x{a.VendorId:X4} | 专用显存: {a.DedicatedMemoryMB} MB | 共享显存: {a.SharedMemoryMB} MB");
+            Console.WriteLine($"      厂商ID: 0x{a.VendorId:X4} | 专用显存: {a.DedicatedMemoryMB} MB | 共享显存: {a.SharedMemoryMB} MB");
         }
         int hidden = GpuAdapterEnumerator.CountHiddenAdapters();
-        Console.WriteLine($"\n(注: 已过滤 {hidden} 个不可保活适配器：WARP 软件渲染器及串流/远控软件创建的虚拟显示适配器)");
-        Console.WriteLine("(提示: LUID 为显卡唯一标识，与任务管理器/性能监视器中 GPU 计数器实例名的 LUID 一致，可用于对照验证)\n");
+        Console.WriteLine($"\n(注: 已过滤 {hidden} 个不可保活适配器：WARP 软件渲染器及串流/远控软件创建的虚拟显示适配器)\n");
     }
 
     private static void PrintHelp()

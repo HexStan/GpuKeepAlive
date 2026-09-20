@@ -23,75 +23,89 @@ public static class GpuAdapterEnumerator
     /// </summary>
     public static IReadOnlyList<GpuAdapterInfo> ListAdapters()
     {
-        var adapters = new List<GpuAdapterInfo>();
-        var realLuids = GetGpuCounterLuids();
-        using var factory = DXGI.CreateDXGIFactory1<IDXGIFactory1>();
-        for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
+        var (visible, _) = EnumerateAdapters();
+        try
         {
-            using (adapter)
+            var adapters = new List<GpuAdapterInfo>(visible.Count);
+            for (int i = 0; i < visible.Count; i++)
             {
-                var desc = adapter.Description1;
-                if (IsHidden(desc, realLuids))
-                    continue;
+                var desc = visible[i].Description1;
                 adapters.Add(new GpuAdapterInfo(
-                    adapters.Count,
+                    i,
                     desc.Description,
                     desc.VendorId,
                     (long)(ulong)desc.DedicatedVideoMemory / (1024 * 1024),
-                    (long)(ulong)desc.SharedSystemMemory / (1024 * 1024),
-                    FormatLuid(desc.Luid)));
+                    (long)(ulong)desc.SharedSystemMemory / (1024 * 1024)));
             }
+            return adapters;
         }
-        return adapters;
+        finally
+        {
+            foreach (var adapter in visible)
+                adapter.Dispose();
+        }
     }
 
     /// <summary>枚举时被过滤的适配器数量（WARP + 虚拟显示适配器），用于向用户说明。</summary>
     public static int CountHiddenAdapters()
     {
-        var realLuids = GetGpuCounterLuids();
-        int hidden = 0;
-        using var factory = DXGI.CreateDXGIFactory1<IDXGIFactory1>();
-        for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
-        {
-            using (adapter)
-            {
-                if (IsHidden(adapter.Description1, realLuids))
-                    hidden++;
-            }
-        }
+        var (visible, hidden) = EnumerateAdapters();
+        foreach (var adapter in visible)
+            adapter.Dispose();
         return hidden;
     }
 
     /// <summary>
-    /// 按 LUID 重新枚举并取出 DXGI 适配器 COM 对象。
-    /// 返回的对象由调用方负责释放；LUID 无效（显卡列表已变化）时返回 null。
+    /// 按标识（序号 + 名称，两者一致才视为同一设备）重新枚举并取出 DXGI 适配器 COM 对象。
+    /// 返回的对象由调用方负责释放；标识无效（显卡列表已变化）时返回 null。
     /// </summary>
-    internal static IDXGIAdapter1? OpenAdapterByLuid(string adapterLuid)
+    internal static IDXGIAdapter1? OpenAdapter(GpuAdapterId id)
     {
+        var (visible, _) = EnumerateAdapters();
+        IDXGIAdapter1? match = null;
+        try
+        {
+            if (id.Index >= 0 && id.Index < visible.Count
+                && string.Equals(visible[id.Index].Description1.Description, id.Name, StringComparison.Ordinal))
+            {
+                match = visible[id.Index];
+            }
+            return match;
+        }
+        finally
+        {
+            foreach (var adapter in visible)
+            {
+                if (!ReferenceEquals(adapter, match))
+                    adapter.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 枚举全部 DXGI 适配器并按可见性分类（WARP 软件渲染器与虚拟显示适配器视为隐藏）。
+    /// 返回可见适配器 COM 对象列表（调用方负责释放）及隐藏数量。
+    /// </summary>
+    private static (List<IDXGIAdapter1> Visible, int Hidden) EnumerateAdapters()
+    {
+        var visible = new List<IDXGIAdapter1>();
+        int hidden = 0;
         var realLuids = GetGpuCounterLuids();
         using var factory = DXGI.CreateDXGIFactory1<IDXGIFactory1>();
         for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
         {
             if (IsHidden(adapter.Description1, realLuids))
             {
+                hidden++;
                 adapter.Dispose();
-                continue;
             }
-            if (FormatLuid(adapter.Description1.Luid) == adapterLuid)
-                return adapter;
-            adapter.Dispose();
+            else
+            {
+                visible.Add(adapter);
+            }
         }
-        return null;
+        return (visible, hidden);
     }
-
-    /// <summary>
-    /// LUID 是显卡适配器的唯一标识（同型号多卡也互不相同），格式与 GPU 性能计数器
-    /// 实例名 (luid_0x..._0x...) 一致，便于对照验证保活落在哪块卡上。
-    /// </summary>
-    public static string FormatLuid(Vortice.Luid luid)
-        => luid.HighPart == 0
-            ? $"0x{luid.LowPart:x8}"
-            : $"0x{luid.HighPart:x8}_0x{luid.LowPart:x8}";
 
     private static bool IsHidden(AdapterDescription1 desc, HashSet<ulong>? realLuids)
     {

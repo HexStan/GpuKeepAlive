@@ -15,7 +15,7 @@ namespace GpuKeepAlive.Core;
 /// </summary>
 public sealed class KeepAliveWorker : IDisposable
 {
-    private readonly string? _adapterLuid;
+    private readonly GpuAdapterId? _adapterId;
     private readonly int _fps;
     private readonly int _intensity;
     private readonly string _displayName;
@@ -25,13 +25,13 @@ public sealed class KeepAliveWorker : IDisposable
     private Thread? _thread;
     private CancellationTokenSource? _cts;
 
-    public KeepAliveWorker(string? adapterLuid, int fps, int intensity, string displayName)
+    public KeepAliveWorker(GpuAdapterId? adapterId, int fps, int intensity, string displayName)
     {
-        _adapterLuid = adapterLuid;
+        _adapterId = adapterId;
         _fps = Math.Clamp(fps, 1, 240);
         _intensity = Math.Clamp(intensity, 1, 3);
         _displayName = displayName;
-        _stats = new KeepAliveStats(displayName, null, null, KeepAliveWorkerStatus.Stopped, TimeSpan.Zero, 0, 0, null);
+        _stats = new KeepAliveStats(displayName, null, KeepAliveWorkerStatus.Stopped, TimeSpan.Zero, 0, 0, null);
     }
 
     public KeepAliveStats Stats
@@ -95,10 +95,10 @@ public sealed class KeepAliveWorker : IDisposable
     private void Run(CancellationToken cancel)
     {
         IDXGIAdapter1? adapter = null;
-        if (_adapterLuid is string luid)
+        if (_adapterId is { } id)
         {
-            adapter = GpuAdapterEnumerator.OpenAdapterByLuid(luid)
-                ?? throw new InvalidOperationException($"未找到 LUID {luid} 对应的显卡（显卡列表可能已变化）。");
+            adapter = GpuAdapterEnumerator.OpenAdapter(id)
+                ?? throw new InvalidOperationException($"未找到 [{id.Index}] {id.Name} 对应的显卡（显卡列表可能已变化）。");
         }
 
         var hr = D3D11.D3D11CreateDevice(
@@ -116,17 +116,12 @@ public sealed class KeepAliveWorker : IDisposable
         try
         {
             string actualAdapterName;
-            string actualAdapterLuid;
             using (var dxgiDevice = device.QueryInterface<IDXGIDevice>())
             {
                 dxgiDevice.GetAdapter(out IDXGIAdapter actualAdapter);
                 using (actualAdapter)
                 using (var actualAdapter1 = actualAdapter.QueryInterface<IDXGIAdapter1>())
-                {
-                    var desc1 = actualAdapter1.Description1;
-                    actualAdapterName = desc1.Description;
-                    actualAdapterLuid = GpuAdapterEnumerator.FormatLuid(desc1.Luid);
-                }
+                    actualAdapterName = actualAdapter1.Description1.Description;
             }
 
             const int texSize = 512;
@@ -186,7 +181,6 @@ public sealed class KeepAliveWorker : IDisposable
                 SetStats(Stats with
                 {
                     ActualAdapterName = actualAdapterName,
-                    ActualAdapterLuid = actualAdapterLuid,
                     Status = KeepAliveWorkerStatus.Running,
                     Elapsed = TimeSpan.Zero,
                     FramesSubmitted = 0,

@@ -33,16 +33,16 @@ public sealed class KeepAliveService : IDisposable
     private static KeepAliveOptions ToOptions(GuiSettings s) => s.Mode switch
     {
         GpuSelectionMode.Default => new KeepAliveOptions(s.Fps, s.Intensity, null),
-        GpuSelectionMode.All => new KeepAliveOptions(s.Fps, s.Intensity, AllAdapterLuids()),
-        GpuSelectionMode.Custom => new KeepAliveOptions(s.Fps, s.Intensity, [.. s.CustomLuids]),
+        GpuSelectionMode.All => new KeepAliveOptions(s.Fps, s.Intensity, AllAdapterIds()),
+        GpuSelectionMode.Custom => new KeepAliveOptions(s.Fps, s.Intensity, [.. s.CustomAdapters]),
         _ => throw new ArgumentOutOfRangeException(nameof(s)),
     };
 
-    private static List<string> AllAdapterLuids()
+    private static List<GpuAdapterId> AllAdapterIds()
     {
-        var luids = GpuAdapterEnumerator.ListAdapters().Select(a => a.AdapterLuid).ToList();
-        if (luids.Count == 0)
+        var ids = GpuAdapterEnumerator.ListAdapters().Select(a => a.Id).ToList();
+        if (ids.Count == 0)
             throw new InvalidOperationException("未检测到可用的硬件显卡。");
-        return luids;
+        return ids;
     }
 }

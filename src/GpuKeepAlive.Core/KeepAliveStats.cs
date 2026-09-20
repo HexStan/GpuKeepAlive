@@ -12,7 +12,6 @@ public enum KeepAliveWorkerStatus
 public sealed record KeepAliveStats(
     string DisplayName,
     string? ActualAdapterName,
-    string? ActualAdapterLuid,
     KeepAliveWorkerStatus Status,
     TimeSpan Elapsed,
     long FramesSubmitted,
