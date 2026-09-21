@@ -1,13 +1,14 @@
 ﻿# GpuKeepAlive 版本发布脚本
-# 用法: powershell -ExecutionPolicy Bypass -File scripts/release.ps1 [-NotesFile <发布注记.md>] [-SkipBuild] [-AllowDirty] [-Yes]
-# 流程: 读取 VERSION 版本号(须存在未提交修改) -> 编译 -> 打包 -> 确认 -> 提交 VERSION -> 打 tag 推送
+# 用法: powershell -ExecutionPolicy Bypass -File scripts/release.ps1 -CommitMessage <提交信息> [-NotesFile <发布注记.md>] [-SkipBuild] [-Yes]
+# 流程: 读取 Directory.Build.props 的版本号(须存在未提交修改) -> 编译 -> 打包 -> 确认 -> 提交 -> 打 tag 推送
 #       -> gh release create 直接发布 (标题 vx.y.z, 注记, 构件为两个 zip)
-# 仅应在维护者主动下达发布指令时运行; 版本号进位由维护者决定: 维护者修改 VERSION 但不提交,
-# 本脚本在发布时提交它 (要求 VERSION 存在未提交修改, 否则中止)
+# 仅应在维护者主动下达发布指令时运行; 版本号进位由维护者决定: 维护者修改 Directory.Build.props 但不提交,
+# 本脚本在发布时提交剩余未提交改动 (要求版本号存在未提交修改, 否则中止; 与版本号无关的其余改动可由
+# 调用者按类型拆分后提前提交); 提交信息由调用者依据变更内容通过 -CommitMessage 传入
 param(
     [string]$NotesFile,      # 发布注记 Markdown 文件路径; 缺省时自动生成简易变更日志
+    [string]$CommitMessage,  # 发布提交的信息 (涵盖版本号修改及未提前提交的其余改动, 必填, 由调用者依据变更内容拟定)
     [switch]$SkipBuild,      # 跳过编译, 直接使用 dist/ 下已有产物
-    [switch]$AllowDirty,     # 允许除 VERSION 外存在未提交改动
     [switch]$Yes             # 跳过发布前的人工确认
 )
 
@@ -35,12 +36,15 @@ foreach ($tool in @("dotnet", "gh", "git")) {
 $null = & cmd /c "gh auth status >nul 2>nul"
 if ($LASTEXITCODE -ne 0) { Fail "GitHub CLI 未登录, 请先执行: gh auth login" }
 
-# 版本号来源: 仓库根目录 VERSION 文件 (由维护者修改, 本脚本仅在发布时提交)
-$versionFile = Join-Path $root "VERSION"
-if (-not (Test-Path $versionFile)) { Fail "未找到 VERSION 文件: $versionFile" }
-$Version = (Get-Content $versionFile -Raw).Trim()
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { Fail "VERSION 内容应为 x.y.z (数字), 当前: '$Version'" }
+# 版本号来源: 仓库根目录 Directory.Build.props 的 <Version> 属性 (由维护者修改, 本脚本仅在发布时提交)
+$propsFile = Join-Path $root "Directory.Build.props"
+if (-not (Test-Path $propsFile)) { Fail "未找到版本号文件: $propsFile" }
+$propsContent = Get-Content $propsFile -Raw
+$Version = if ($propsContent -match '<Version>\s*(\d+\.\d+\.\d+)\s*</Version>') { $Matches[1] } else { "" }
+if (-not $Version) { Fail "Directory.Build.props 中缺少 <Version>x.y.z</Version> (语义化版本, 数字)" }
 $tag = "v$Version"
+
+if (-not $CommitMessage) { Fail "请通过 -CommitMessage 指定发布提交信息 (由调用者依据变更内容拟定)" }
 
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "  GpuKeepAlive Release $tag" -ForegroundColor Cyan
@@ -48,17 +52,12 @@ Write-Host "===================================================" -ForegroundColo
 
 Push-Location $root
 try {
-    # 发布前提: VERSION 须存在未提交的修改 (维护者已写入新版本号等待发布)
-    $headVersion = (& cmd /c "git show HEAD:VERSION 2>nul") -join "`n"
-    if ($LASTEXITCODE -ne 0) { Fail "无法读取 HEAD:VERSION, 仓库状态异常" }
-    if ($headVersion.Trim() -eq $Version) {
-        Fail "VERSION 无未提交的修改, 不执行发布流程 (发布仅由维护者主动指令发起)"
-    }
-    # 除 VERSION 外工作区须干净
-    git diff --quiet -- . ":(exclude)VERSION"; $otherUnstaged = ($LASTEXITCODE -ne 0)
-    git diff --cached --quiet -- . ":(exclude)VERSION"; $otherStaged = ($LASTEXITCODE -ne 0)
-    if (($otherUnstaged -or $otherStaged) -and -not $AllowDirty) {
-        Fail "除 VERSION 外工作区存在未提交改动, 请先提交/暂存, 或使用 -AllowDirty 忽略"
+    # 发布前提: 版本号须存在未提交的修改 (维护者已写入新版本号等待发布);
+    # 该文件在 HEAD 中不存在 (首次引入) 同样视为存在未提交修改
+    $headProps = (& cmd /c "git show HEAD:Directory.Build.props 2>nul") -join "`n"
+    $headVersion = if ($LASTEXITCODE -eq 0 -and $headProps -match '<Version>\s*(\d+\.\d+\.\d+)\s*</Version>') { $Matches[1] } else { "" }
+    if ($headVersion -eq $Version) {
+        Fail "Directory.Build.props 无未提交的修改, 不执行发布流程 (发布仅由维护者主动指令发起)"
     }
     git fetch origin --quiet
     if ($LASTEXITCODE -ne 0) { Fail "git fetch 失败, 请检查网络后重试" }
@@ -148,18 +147,28 @@ $changeLog
     # ---------- 确认 ----------
     Write-Host ""
     Write-Host "即将发布:" -ForegroundColor Cyan
-    Write-Host "  VERSION: 提交 'chore: 版本号升至 $Version'"
+    Write-Host "  提交:    $CommitMessage"
     Write-Host "  Tag:     $tag  (指向该提交)"
     Write-Host "  Release: 标题 $tag, 直接发布 (非 Draft)"
     Write-Host "  构件:    $(Split-Path $cliZip -Leaf), $(Split-Path $guiZip -Leaf)"
+    $pendingChanges = git status --porcelain
+    if ($pendingChanges) {
+        Write-Host "  发布提交将包含:" -ForegroundColor Yellow
+        $pendingChanges | ForEach-Object { Write-Host "    $_" }
+        Write-Host "  提示: 如需按类型拆分提交, 可先行提交后再运行本脚本 (版本号修改除外)" -ForegroundColor DarkGray
+    }
     if (-not $Yes) {
         $answer = Read-Host "确认发布? (y/N)"
         if ($answer -notmatch '^[Yy]') { Fail "已取消" }
     }
 
     # ---------- 4. 提交版本号 / tag / 发布 ----------
-    Write-Host "`n[4/4] 提交 VERSION, 打 tag 并发布 Release..." -ForegroundColor Green
-    Run "git commit -m 'chore: 版本号升至 $Version' -- VERSION"
+    Write-Host "`n[4/4] 提交版本号, 打 tag 并发布 Release..." -ForegroundColor Green
+    Run "git add -A"
+    # 提交信息为调用者传入的自由文本, 绕过 Invoke-Expression 直接调用, 规避引号转义问题
+    Write-Host "> git commit -m $CommitMessage" -ForegroundColor DarkGray
+    & git commit -m $CommitMessage
+    if ($LASTEXITCODE -ne 0) { Fail "命令执行失败: git commit" }
     Run "git tag $tag"
     Run "git push origin HEAD"
     Run "git push origin $tag"
