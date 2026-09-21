@@ -140,10 +140,10 @@ public static class Program
             : string.Join(", ", targetAdapters.Select(id => $"[{id.Index}] {id.Name}"));
 
         if (!Console.IsOutputRedirected)
-            Console.Title = "GPU KeepAlive CLI";
+            Console.Title = $"GPU KeepAliveCli v{AppVersion.Current}";
 
         Console.WriteLine("========================================================================");
-        Console.WriteLine(" GPU KeepAliveCli - 运行中");
+        Console.WriteLine($" GPU KeepAliveCli v{AppVersion.Current} - 运行中");
         Console.WriteLine("========================================================================");
         Console.WriteLine($"保活目标: {targetDescription}");
         Console.WriteLine($"运行帧率: {targetFps} FPS");
@@ -257,9 +257,9 @@ public static class Program
 
     private static void PrintHelp()
     {
-        Console.WriteLine(@"
+        Console.WriteLine($@"
 ========================================================================
- GPU KeepAliveCli - 轻量级 GPU 3D 引擎防休眠保活工具 (命令行版)
+ GPU KeepAliveCli v{AppVersion.Current} - 轻量级 GPU 3D 引擎防休眠保活工具 (命令行版)
 ========================================================================
 用途:
   通过向指定的显卡持续提交微量 3D/Compute 渲染任务，

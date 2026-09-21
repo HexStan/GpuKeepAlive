@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using GpuKeepAlive.Core;
 using GpuKeepAlive.Gui.Services;
 using GpuKeepAlive.Gui.ViewModels;
 
@@ -22,6 +23,9 @@ public partial class MainWindow : Window
         ViewModel = new MainWindowViewModel(service, store, initialSettings);
         InitializeComponent();
         DataContext = ViewModel;
+
+        // 版本号来自 Directory.Build.props，经程序集 InformationalVersion 透传。
+        Title = $"GPU KeepAlive v{AppVersion.Current} 设置";
 
         ApplySizeLimits();
         SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
